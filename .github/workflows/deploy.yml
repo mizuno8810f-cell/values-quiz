@@ -9,7 +9,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "claude/know-you-game-static-web-4p61h3"]
   workflow_dispatch:
 
 permissions:
