@@ -468,6 +468,7 @@ export default function App() {
   const [optsForB, setOptsForB] = useState(null); // Bが Aを当てる選択肢
   const [guessA, setGuessA] = useState(null);
   const [guessB, setGuessB] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const bg = {
     minHeight: "100vh", fontFamily: FONT, color: C.ink, padding: "24px 18px 48px",
@@ -526,6 +527,29 @@ export default function App() {
   const reset = () => {
     setPhase("setup"); setQuestions([]);
     setQA(null); setQB(null); setOwnA(null); setOwnB(null); setOptsForA(null); setOptsForB(null); setGuessA(null); setGuessB(null);
+  };
+  const shareApp = async () => {
+    const url = (typeof window !== "undefined" && window.location)
+      ? window.location.origin + window.location.pathname : "";
+    const shareData = { title: "どれだけ知ってる？", text: "相手のことをどれだけ知ってるか当て合う2人用ゲーム。一緒にやってみよ！", url };
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (e) { return; } // 共有ダイアログをキャンセルした場合など
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+      } else if (typeof window !== "undefined") {
+        window.prompt("このリンクをコピーして共有してね", url);
+        return;
+      }
+    } catch (e) {
+      if (typeof window !== "undefined") { window.prompt("このリンクをコピーして共有してね", url); return; }
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
   };
 
   // ── SETUP ──
@@ -595,6 +619,10 @@ export default function App() {
         </div>
         <button disabled={!ok} onClick={start} className="rounded-full w-full mt-5 py-4"
           style={{ background: ok ? C.ink : C.line, color: "#fff", fontWeight: 800, fontSize: 17, opacity: ok ? 1 : 0.7 }}>はじめる</button>
+        <button onClick={shareApp} className="rounded-full w-full mt-3 py-3"
+          style={{ background: "#fff", color: C.muted, border: `1.5px solid ${C.line}`, fontWeight: 700, fontSize: 15 }}>
+          {copied ? "リンクをコピーしました ✓" : "🔗 このゲームのリンクを共有"}
+        </button>
       </div></div>
     );
   }
@@ -750,6 +778,10 @@ export default function App() {
           <button onClick={replay} className="rounded-full flex-1 py-3" style={{ background: C.ink, color: "#fff", fontWeight: 800, fontSize: 16 }}>もう一回（同じ2人）</button>
           <button onClick={reset} className="rounded-full px-5 py-3" style={{ background: "#fff", color: C.muted, border: `1.5px solid ${C.line}`, fontWeight: 700 }}>最初から</button>
         </div>
+        <button onClick={shareApp} className="rounded-full w-full mt-3 py-3"
+          style={{ background: "#fff", color: C.a, border: `1.5px solid ${C.a}`, fontWeight: 800, fontSize: 15 }}>
+          {copied ? "リンクをコピーしました ✓" : "🔗 友達にこのゲームを共有"}
+        </button>
       </div></div>
     );
   }
