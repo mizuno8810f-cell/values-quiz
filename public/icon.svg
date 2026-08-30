@@ -1,0 +1,23 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="どれだけ知ってる？ アイコン">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FBE7E3"/>
+      <stop offset="0.45" stop-color="#FBF6F2"/>
+      <stop offset="1" stop-color="#E1F1F0"/>
+    </linearGradient>
+    <clipPath id="heart">
+      <path d="M50 82 C20 55 8 38 8 25 C8 10 22 4 34 8 C42 11 48 18 50 24 C52 18 58 11 66 8 C78 4 92 10 92 25 C92 38 80 55 50 82 Z"/>
+    </clipPath>
+  </defs>
+  <!-- full-bleed background so the icon works as a maskable / apple-touch icon -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- heart centered with safe padding (inner 80% maskable zone) -->
+  <svg x="106" y="118" width="300" height="270" viewBox="0 0 100 90" preserveAspectRatio="xMidYMid meet">
+    <g clip-path="url(#heart)">
+      <rect x="0" y="0" width="50" height="90" fill="#E86A5C"/>
+      <rect x="50" y="0" width="50" height="90" fill="#2E9E9A"/>
+    </g>
+    <path d="M50 82 C20 55 8 38 8 25 C8 10 22 4 34 8 C42 11 48 18 50 24 C52 18 58 11 66 8 C78 4 92 10 92 25 C92 38 80 55 50 82 Z"
+      fill="none" stroke="#33283A" stroke-width="3.2" stroke-linejoin="round" opacity="0.9"/>
+  </svg>
+</svg>
