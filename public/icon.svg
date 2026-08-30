@@ -11,8 +11,8 @@
   </defs>
   <!-- full-bleed background so the icon works as a maskable / apple-touch icon -->
   <rect width="512" height="512" fill="url(#bg)"/>
-  <!-- heart centered with safe padding (inner 80% maskable zone) -->
-  <svg x="106" y="118" width="300" height="270" viewBox="0 0 100 90" preserveAspectRatio="xMidYMid meet">
+  <!-- heart centered: inner viewBox tightened to the heart's real bounds (x8..92, y4..82) -->
+  <svg x="96" y="107" width="320" height="298" viewBox="8 4 84 78" preserveAspectRatio="xMidYMid meet">
     <g clip-path="url(#heart)">
       <rect x="0" y="0" width="50" height="90" fill="#E86A5C"/>
       <rect x="50" y="0" width="50" height="90" fill="#2E9E9A"/>

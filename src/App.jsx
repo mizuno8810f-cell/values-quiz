@@ -531,7 +531,7 @@ export default function App() {
   const shareApp = async () => {
     const url = (typeof window !== "undefined" && window.location)
       ? window.location.origin + window.location.pathname : "";
-    const shareData = { title: "どれだけ知ってる？", text: "相手のことをどれだけ知ってるか当て合う2人用ゲーム。一緒にやってみよ！", url };
+    const shareData = { title: "価値観あてクイズ", text: "お互いの価値観をどれだけ当てられる？2人用の価値観あてクイズ。一緒にやってみよ！", url };
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share(shareData);
@@ -559,7 +559,7 @@ export default function App() {
     return (
       <div style={bg}><div style={wrap}>
         <div className="flex justify-center mb-2"><HeartMeter pct={62} /></div>
-        <h1 style={{ fontSize: 30, fontWeight: 800, textAlign: "center", lineHeight: 1.25 }}>どれだけ知ってる？</h1>
+        <h1 style={{ fontSize: 30, fontWeight: 800, textAlign: "center", lineHeight: 1.25 }}>価値観あてクイズ</h1>
         <p style={{ textAlign: "center", color: C.muted, marginTop: 6, marginBottom: 16, lineHeight: 1.6 }}>
           相手のことを<b>どれだけ知ってるか</b>を当て合う、2人用ゲーム。<br />スマホ1台を交代で使います。
         </p>

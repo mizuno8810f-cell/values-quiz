@@ -1,7 +1,7 @@
 {
-  "name": "どれだけ知ってる？",
-  "short_name": "どれだけ知ってる？",
-  "description": "相手のことをどれだけ知ってるか当て合う、2人用ゲーム。",
+  "name": "価値観あてクイズ",
+  "short_name": "価値観あてクイズ",
+  "description": "お互いの価値観をどれだけ当てられるか競う、2人用の価値観あてクイズ。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
