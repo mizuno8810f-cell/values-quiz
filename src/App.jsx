@@ -471,6 +471,7 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [deck, setDeck] = useState([]);      // 会話カードモードの山札
   const [cardIdx, setCardIdx] = useState(0); // 現在めくっているカードの位置
+  const [flipKey, setFlipKey] = useState(0); // カードをめくるたびに増やしてフリップ再生
 
   const bg = {
     minHeight: "100vh", fontFamily: FONT, color: C.ink, padding: "24px 18px 48px",
@@ -548,8 +549,9 @@ export default function App() {
       if (n >= deck.length) { setDeck((d) => shuffle(d)); return 0; } // 一巡したらシャッフルして最初へ
       return n;
     });
+    setFlipKey((k) => k + 1);
   };
-  const shuffleCards = () => { setDeck((d) => shuffle(d)); setCardIdx(0); };
+  const shuffleCards = () => { setDeck((d) => shuffle(d)); setCardIdx(0); setFlipKey((k) => k + 1); };
   const shareApp = async () => {
     const url = (typeof window !== "undefined" && window.location)
       ? window.location.origin + window.location.pathname : "";
@@ -753,21 +755,34 @@ export default function App() {
         </div>
         {card ? (
           <>
-            <div className="rounded-3xl" style={{ background: "#fff", boxShadow: "0 12px 34px rgba(51,40,58,.12)", border: `1px solid ${C.line}`, padding: "28px 22px", minHeight: 260, display: "flex", flexDirection: "column" }}>
-              <div className="flex items-center justify-between">
-                <span className="rounded-full px-3 py-1" style={{ fontSize: 12, fontWeight: 800, background: catColor, color: "#fff" }}>話の種</span>
-                <span style={{ fontSize: 13, color: C.muted, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{cardIdx + 1} / {deck.length}</span>
-              </div>
-              <div className="flex-1 flex items-center justify-center" style={{ padding: "18px 0" }}>
-                <div style={{ fontSize: 24, fontWeight: 800, color: C.ink, textAlign: "center", lineHeight: 1.5 }}>{card.question}</div>
-              </div>
-              {Array.isArray(card.choices) && card.choices.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2" style={{ marginTop: 4 }}>
-                  {card.choices.map((ch, i) => (
-                    <span key={i} className="rounded-full px-3 py-1" style={{ fontSize: 13, fontWeight: 700, background: C.aSoft, color: C.ink, opacity: 0.85 }}>{ch}</span>
-                  ))}
+            <style>{`
+              @keyframes cardPera {
+                0%   { transform: rotateY(-92deg); opacity: 0; }
+                55%  { transform: rotateY(10deg);  opacity: 1; }
+                80%  { transform: rotateY(-4deg); }
+                100% { transform: rotateY(0deg); }
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .pera-card { animation: none !important; }
+              }
+            `}</style>
+            <div style={{ perspective: 1100 }}>
+              <div key={flipKey} className="pera-card rounded-3xl" style={{ background: "#fff", boxShadow: "0 12px 34px rgba(51,40,58,.12)", border: `1px solid ${C.line}`, padding: "28px 22px", minHeight: 260, display: "flex", flexDirection: "column", transformOrigin: "center", backfaceVisibility: "hidden", animation: "cardPera .5s cubic-bezier(.2,.75,.25,1) both" }}>
+                <div className="flex items-center justify-between">
+                  <span className="rounded-full px-3 py-1" style={{ fontSize: 12, fontWeight: 800, background: catColor, color: "#fff" }}>話の種</span>
+                  <span style={{ fontSize: 13, color: C.muted, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{cardIdx + 1} / {deck.length}</span>
                 </div>
-              )}
+                <div className="flex-1 flex items-center justify-center" style={{ padding: "18px 0" }}>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: C.ink, textAlign: "center", lineHeight: 1.5 }}>{card.question}</div>
+                </div>
+                {Array.isArray(card.choices) && card.choices.length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-2" style={{ marginTop: 4 }}>
+                    {card.choices.map((ch, i) => (
+                      <span key={i} className="rounded-full px-3 py-1" style={{ fontSize: 13, fontWeight: 700, background: C.aSoft, color: C.ink, opacity: 0.85 }}>{ch}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div style={{ textAlign: "center", fontSize: 12.5, color: C.muted, marginTop: 12, lineHeight: 1.6 }}>
               選択肢はあくまでヒント。自由に話してOK 🗣️
