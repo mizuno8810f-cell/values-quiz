@@ -779,17 +779,17 @@ export default function App() {
           <>
             <style>{`
               @keyframes cardPera {
-                0%   { transform: rotateY(-92deg); opacity: 0; }
-                55%  { transform: rotateY(10deg);  opacity: 1; }
-                80%  { transform: rotateY(-4deg); }
-                100% { transform: rotateY(0deg); }
+                0%   { transform: rotateX(-85deg); opacity: 0; box-shadow: 0 30px 44px rgba(51,40,58,.22); }
+                55%  { transform: rotateX(9deg);   opacity: 1; }
+                80%  { transform: rotateX(-3deg); }
+                100% { transform: rotateX(0deg);   box-shadow: 0 12px 34px rgba(51,40,58,.12); }
               }
               @media (prefers-reduced-motion: reduce) {
                 .pera-card { animation: none !important; }
               }
             `}</style>
-            <div style={{ perspective: 1100 }}>
-              <div key={flipKey} className="pera-card rounded-3xl" style={{ background: "#fff", boxShadow: "0 12px 34px rgba(51,40,58,.12)", border: `1px solid ${C.line}`, padding: "28px 22px", minHeight: 260, display: "flex", flexDirection: "column", transformOrigin: "center", backfaceVisibility: "hidden", animation: "cardPera .5s cubic-bezier(.2,.75,.25,1) both" }}>
+            <div style={{ perspective: 900 }}>
+              <div key={flipKey} className="pera-card rounded-3xl" style={{ background: "#fff", boxShadow: "0 12px 34px rgba(51,40,58,.12)", border: `1px solid ${C.line}`, padding: "28px 22px", minHeight: 260, display: "flex", flexDirection: "column", transformOrigin: "top center", backfaceVisibility: "hidden", animation: "cardPera .44s cubic-bezier(.2,.8,.25,1) both" }}>
                 <div className="flex items-center justify-between">
                   <span className="rounded-full px-3 py-1" style={{ fontSize: 12, fontWeight: 800, background: catColor, color: "#fff" }}>話の種</span>
                   <span style={{ fontSize: 13, color: C.muted, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{cardIdx + 1} / {deck.length}</span>
