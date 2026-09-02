@@ -451,7 +451,7 @@ function GuessRound({ player, other, color, otherColor, questions, options, onDo
 
 // ─── メイン ───────────────────────────────────────────────
 export default function App() {
-  const [phase, setPhase] = useState("setup");
+  const [phase, setPhase] = useState("home");
   const [nameA, setNameA] = useState("");
   const [nameB, setNameB] = useState("");
   const [mode, setMode] = useState("normal");
@@ -469,6 +469,8 @@ export default function App() {
   const [guessA, setGuessA] = useState(null);
   const [guessB, setGuessB] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [deck, setDeck] = useState([]);      // 会話カードモードの山札
+  const [cardIdx, setCardIdx] = useState(0); // 現在めくっているカードの位置
 
   const bg = {
     minHeight: "100vh", fontFamily: FONT, color: C.ink, padding: "24px 18px 48px",
@@ -528,6 +530,26 @@ export default function App() {
     setPhase("setup"); setQuestions([]);
     setQA(null); setQB(null); setOwnA(null); setOwnB(null); setOptsForA(null); setOptsForB(null); setGuessA(null); setGuessB(null);
   };
+  const goHome = () => {
+    setPhase("home"); setQuestions([]); setDeck([]); setCardIdx(0);
+    setQA(null); setQB(null); setOwnA(null); setOwnB(null); setOptsForA(null); setOptsForB(null); setGuessA(null); setGuessB(null);
+  };
+
+  // ── 会話カードモード ──
+  const startCards = () => {
+    const pool = (BANK[mode] && BANK[mode][category]) ? BANK[mode][category] : [];
+    setDeck(shuffle(pool));
+    setCardIdx(0);
+    setPhase("cards");
+  };
+  const nextCard = () => {
+    setCardIdx((i) => {
+      const n = i + 1;
+      if (n >= deck.length) { setDeck((d) => shuffle(d)); return 0; } // 一巡したらシャッフルして最初へ
+      return n;
+    });
+  };
+  const shuffleCards = () => { setDeck((d) => shuffle(d)); setCardIdx(0); };
   const shareApp = async () => {
     const url = (typeof window !== "undefined" && window.location)
       ? window.location.origin + window.location.pathname : "";
@@ -552,12 +574,52 @@ export default function App() {
     setTimeout(() => setCopied(false), 1800);
   };
 
+  // ── HOME（モード選択）──
+  if (phase === "home") {
+    return (
+      <div style={bg}><div style={wrap}>
+        <div className="flex justify-center mb-2"><HeartMeter pct={62} /></div>
+        <h1 style={{ fontSize: 30, fontWeight: 800, textAlign: "center", lineHeight: 1.25 }}>価値観あてクイズ</h1>
+        <p style={{ textAlign: "center", color: C.muted, marginTop: 6, marginBottom: 22, lineHeight: 1.6 }}>
+          ふたりで楽しむ、価値観の遊び。<br />モードを選んでね。
+        </p>
+        <div className="flex flex-col gap-4">
+          <button onClick={() => setPhase("setup")} className="rounded-3xl p-5 text-left"
+            style={{ background: "#fff", border: `2px solid ${C.a}`, boxShadow: "0 10px 30px rgba(51,40,58,.08)" }}>
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl flex items-center justify-center" style={{ width: 52, height: 52, flex: "0 0 auto", background: C.aSoft, fontSize: 26 }}>💘</div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: C.ink }}>価値観あてクイズ</div>
+                <div style={{ fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.5 }}>お互いの答えを予想して、相性を判定。2人で交代しながら遊ぶ本格モード。</div>
+              </div>
+            </div>
+          </button>
+          <button onClick={() => setPhase("cardsSetup")} className="rounded-3xl p-5 text-left"
+            style={{ background: "#fff", border: `2px solid ${C.b}`, boxShadow: "0 10px 30px rgba(51,40,58,.08)" }}>
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl flex items-center justify-center" style={{ width: 52, height: 52, flex: "0 0 auto", background: C.bSoft, fontSize: 26 }}>🃏</div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: C.ink }}>会話カード</div>
+                <div style={{ fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.5 }}>質問カードを1枚ずつめくって、話の種に。当てっこ無しで気軽におしゃべり。</div>
+              </div>
+            </div>
+          </button>
+        </div>
+        <button onClick={shareApp} className="rounded-full w-full mt-6 py-3"
+          style={{ background: "#fff", color: C.muted, border: `1.5px solid ${C.line}`, fontWeight: 700, fontSize: 15 }}>
+          {copied ? "リンクをコピーしました ✓" : "🔗 このアプリのリンクを共有"}
+        </button>
+      </div></div>
+    );
+  }
+
   // ── SETUP ──
   if (phase === "setup") {
     const field = { width: "100%", border: `1.5px solid ${C.line}`, borderRadius: 14, padding: "12px 14px", fontSize: 16, background: "#fff", outline: "none", color: C.ink };
     const ok = nameA.trim() && nameB.trim();
     return (
       <div style={bg}><div style={wrap}>
+        <button onClick={goHome} className="mb-2" style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 14, padding: "4px 2px" }}>← モード選択にもどる</button>
         <div className="flex justify-center mb-2"><HeartMeter pct={62} /></div>
         <h1 style={{ fontSize: 30, fontWeight: 800, textAlign: "center", lineHeight: 1.25 }}>価値観あてクイズ</h1>
         <p style={{ textAlign: "center", color: C.muted, marginTop: 6, marginBottom: 16, lineHeight: 1.6 }}>
@@ -623,6 +685,105 @@ export default function App() {
           style={{ background: "#fff", color: C.muted, border: `1.5px solid ${C.line}`, fontWeight: 700, fontSize: 15 }}>
           {copied ? "リンクをコピーしました ✓" : "🔗 このゲームのリンクを共有"}
         </button>
+      </div></div>
+    );
+  }
+
+  // ── 会話カード：設定 ──
+  if (phase === "cardsSetup") {
+    return (
+      <div style={bg}><div style={wrap}>
+        <button onClick={goHome} className="mb-2" style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 14, padding: "4px 2px" }}>← モード選択にもどる</button>
+        <div style={{ textAlign: "center", fontSize: 40, marginTop: 4 }}>🃏</div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, textAlign: "center", lineHeight: 1.25, marginTop: 4 }}>会話カード</h1>
+        <p style={{ textAlign: "center", color: C.muted, marginTop: 6, marginBottom: 16, lineHeight: 1.6 }}>
+          質問カードを1枚ずつめくって、<b>話の種</b>に。<br />当てっこ無しで、気軽におしゃべりしよう。
+        </p>
+        <div className="rounded-3xl p-5" style={{ background: "#fff", boxShadow: "0 10px 30px rgba(51,40,58,.08)" }}>
+          <div style={{ fontSize: 13, color: C.ink, fontWeight: 700, marginBottom: 8 }}>深さ</div>
+          <div className="flex flex-col gap-2">
+            {MODES.map((m) => {
+              const on = mode === m.key;
+              return (
+                <button key={m.key} onClick={() => setMode(m.key)} className="rounded-2xl px-4 py-3 text-left"
+                  style={{ border: `2px solid ${on ? C.ink : C.line}`, background: on ? C.ink : "#fff" }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: on ? "#fff" : C.ink }}>{m.label}</div>
+                  <div style={{ fontSize: 12, color: on ? "#EAD9DF" : C.muted, marginTop: 2 }}>{m.desc}</div>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 13, color: C.ink, fontWeight: 700, marginTop: 18, marginBottom: 8 }}>カテゴリ{spicyUnlocked ? " 🔓" : ""}</div>
+          <div className="flex flex-wrap gap-2">
+            {(spicyUnlocked ? [...CATEGORIES, CAT_SPICY] : CATEGORIES).map((c) => {
+              const on = category === c;
+              return (
+                <button key={c} onClick={() => {
+                  setCategory(c);
+                  if (c === CAT_LOVE && !spicyUnlocked) {
+                    const n = loveTaps + 1; setLoveTaps(n);
+                    if (n >= 20) { setSpicyUnlocked(true); try { window.storage.set("spicy-unlocked", "1"); } catch (e) {} }
+                  }
+                }} className="rounded-full px-4 py-2"
+                  style={{ fontSize: 14, fontWeight: 700, border: `1.5px solid ${on ? C.ink : C.line}`, background: on ? C.ink : "#fff", color: on ? "#fff" : C.muted }}>{c}</button>
+              );
+            })}
+          </div>
+          {category === CAT_SPICY && (
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 8 }}>※18歳以上向け。大人同士で楽しんでね</div>
+          )}
+        </div>
+        <button onClick={startCards} className="rounded-full w-full mt-5 py-4"
+          style={{ background: C.ink, color: "#fff", fontWeight: 800, fontSize: 17 }}>カードをめくる</button>
+      </div></div>
+    );
+  }
+
+  // ── 会話カード：カードめくり ──
+  if (phase === "cards") {
+    const card = deck[cardIdx] || null;
+    const catColor = category === CAT_LOVE || category === CAT_SPICY ? C.a : C.b;
+    return (
+      <div style={bg}><div style={wrap}>
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={goHome} style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 14, padding: "4px 2px" }}>← ホーム</button>
+          <span className="rounded-full px-3 py-1" style={{ fontSize: 12, fontWeight: 800, background: "#fff", color: C.muted, border: `1px solid ${C.line}` }}>
+            {MODES.find((m) => m.key === mode)?.label} ・ {category}
+          </span>
+        </div>
+        {card ? (
+          <>
+            <div className="rounded-3xl" style={{ background: "#fff", boxShadow: "0 12px 34px rgba(51,40,58,.12)", border: `1px solid ${C.line}`, padding: "28px 22px", minHeight: 260, display: "flex", flexDirection: "column" }}>
+              <div className="flex items-center justify-between">
+                <span className="rounded-full px-3 py-1" style={{ fontSize: 12, fontWeight: 800, background: catColor, color: "#fff" }}>話の種</span>
+                <span style={{ fontSize: 13, color: C.muted, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{cardIdx + 1} / {deck.length}</span>
+              </div>
+              <div className="flex-1 flex items-center justify-center" style={{ padding: "18px 0" }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: C.ink, textAlign: "center", lineHeight: 1.5 }}>{card.question}</div>
+              </div>
+              {Array.isArray(card.choices) && card.choices.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2" style={{ marginTop: 4 }}>
+                  {card.choices.map((ch, i) => (
+                    <span key={i} className="rounded-full px-3 py-1" style={{ fontSize: 13, fontWeight: 700, background: C.aSoft, color: C.ink, opacity: 0.85 }}>{ch}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ textAlign: "center", fontSize: 12.5, color: C.muted, marginTop: 12, lineHeight: 1.6 }}>
+              選択肢はあくまでヒント。自由に話してOK 🗣️
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={nextCard} className="rounded-full flex-1 py-4" style={{ background: C.ink, color: "#fff", fontWeight: 800, fontSize: 17 }}>次のカード →</button>
+              <button onClick={shuffleCards} className="rounded-full px-5 py-4" style={{ background: "#fff", color: C.muted, border: `1.5px solid ${C.line}`, fontWeight: 700 }}>🔀 シャッフル</button>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-3xl" style={{ background: "#fff", boxShadow: "0 12px 34px rgba(51,40,58,.12)", padding: "40px 22px", textAlign: "center" }}>
+            <div style={{ fontSize: 30 }}>🕊️</div>
+            <div style={{ marginTop: 10, color: C.muted, fontWeight: 700, lineHeight: 1.6 }}>このカテゴリのカードが見つかりませんでした。<br />別のカテゴリを選んでね。</div>
+            <button onClick={() => setPhase("cardsSetup")} className="rounded-full w-full mt-5 py-3" style={{ background: C.ink, color: "#fff", fontWeight: 800, fontSize: 16 }}>カテゴリを選びなおす</button>
+          </div>
+        )}
       </div></div>
     );
   }
