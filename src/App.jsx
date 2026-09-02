@@ -157,10 +157,27 @@ const MODE_BRIEF = {
     `難易度: 深い。価値観・感情・人生観に触れる、相手をよく知らないと当てにくい質問（大事にしている価値観、実は苦手なタイプ、落ち込んだ時の本音、譲れないこだわり など）。ただし答えられる範囲に配慮し、重すぎない程度に。`,
 };
 
+// カテゴリごとの質問プールを返す。
+// 「なんでも」は エッチ系（CAT_SPICY）以外の全カテゴリを合算した大きなプールにする（重複は除外）。
+function getPool(mode, category) {
+  const md = BANK[mode] || BANK.normal || {};
+  if (category === "なんでも") {
+    const seen = new Set(), out = [];
+    Object.keys(md).forEach((cat) => {
+      if (cat === CAT_SPICY) return; // エッチ系は「なんでも」に混ぜない
+      (md[cat] || []).forEach((q) => {
+        if (!seen.has(q.question)) { seen.add(q.question); out.push(q); }
+      });
+    });
+    return out;
+  }
+  return md[category] || [];
+}
+
 // 固定の質問集から n 問（重複回避）を選ぶ
 function pickQuestions(mode, category, n, avoid) {
-  const pool = (BANK[mode] && BANK[mode][category]) ? BANK[mode][category]
-             : (BANK.normal && BANK.normal["なんでも"]) || [];
+  let pool = getPool(mode, category);
+  if (!pool.length) pool = getPool("normal", "なんでも");
   const avoidSet = new Set(avoid || []);
   let cand = pool.filter((q) => !avoidSet.has(q.question));
   if (cand.length < n) cand = pool.slice(); // 出し尽くしたら全部から
@@ -538,9 +555,10 @@ export default function App() {
 
   // ── 会話カードモード ──
   const startCards = () => {
-    const pool = (BANK[mode] && BANK[mode][category]) ? BANK[mode][category] : [];
+    const pool = getPool(mode, category);
     setDeck(shuffle(pool));
     setCardIdx(0);
+    setFlipKey((k) => k + 1);
     setPhase("cards");
   };
   const nextCard = () => {
@@ -549,6 +567,10 @@ export default function App() {
       if (n >= deck.length) { setDeck((d) => shuffle(d)); return 0; } // 一巡したらシャッフルして最初へ
       return n;
     });
+    setFlipKey((k) => k + 1);
+  };
+  const prevCard = () => {
+    setCardIdx((i) => Math.max(0, i - 1)); // 先頭ではそれ以上戻らない
     setFlipKey((k) => k + 1);
   };
   const shuffleCards = () => { setDeck((d) => shuffle(d)); setCardIdx(0); setFlipKey((k) => k + 1); };
@@ -788,9 +810,11 @@ export default function App() {
               選択肢はあくまでヒント。自由に話してOK 🗣️
             </div>
             <div className="flex gap-3 mt-4">
+              <button onClick={prevCard} disabled={cardIdx === 0} className="rounded-full px-5 py-4"
+                style={{ background: "#fff", color: C.muted, border: `1.5px solid ${C.line}`, fontWeight: 700, opacity: cardIdx === 0 ? 0.4 : 1 }}>← 前</button>
               <button onClick={nextCard} className="rounded-full flex-1 py-4" style={{ background: C.ink, color: "#fff", fontWeight: 800, fontSize: 17 }}>次のカード →</button>
-              <button onClick={shuffleCards} className="rounded-full px-5 py-4" style={{ background: "#fff", color: C.muted, border: `1.5px solid ${C.line}`, fontWeight: 700 }}>🔀 シャッフル</button>
             </div>
+            <button onClick={shuffleCards} className="rounded-full w-full mt-3 py-3" style={{ background: "#fff", color: C.muted, border: `1.5px solid ${C.line}`, fontWeight: 700 }}>🔀 シャッフル</button>
           </>
         ) : (
           <div className="rounded-3xl" style={{ background: "#fff", boxShadow: "0 12px 34px rgba(51,40,58,.12)", padding: "40px 22px", textAlign: "center" }}>
