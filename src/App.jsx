@@ -107,6 +107,33 @@ const shuffle = (a) => {
   return b;
 };
 
+// ─── モード別プレイ回数カウンター ───────────────────────────
+// アカウント不要の無料カウンターサービス（Abacus）を利用。
+// サーバーには「整数のカウント」だけが増える。個人情報・ログ・IP等は一切送らない。
+// 通信に失敗してもアプリは止めない（ベストエフォート）。将来切り替えたくなったら下の定数を変えるだけ。
+const COUNTER_BASE = "https://abacus.jasoncameron.dev";
+const COUNTER_NS = "values-quiz-mizuno8810f-cell"; // 名前空間（固定）
+const COUNTER_KEY = { quiz: "play-quiz", cards: "play-cards" };
+function bumpPlay(kind) {
+  try {
+    const key = COUNTER_KEY[kind];
+    if (!key || typeof fetch === "undefined") return;
+    fetch(`${COUNTER_BASE}/hit/${COUNTER_NS}/${key}`, { keepalive: true, cache: "no-store" }).catch(() => {});
+  } catch (e) { /* 失敗は無視 */ }
+}
+async function getPlayCounts() {
+  const read = async (key) => {
+    try {
+      const r = await fetch(`${COUNTER_BASE}/get/${COUNTER_NS}/${key}`, { cache: "no-store" });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return typeof j.value === "number" ? j.value : null;
+    } catch (e) { return null; }
+  };
+  const [quiz, cards] = await Promise.all([read(COUNTER_KEY.quiz), read(COUNTER_KEY.cards)]);
+  return { quiz, cards };
+}
+
 // ─── AI ───────────────────────────────────────────────────
 async function callClaude(prompt) { return ""; } // 公開版: AI未使用（固定の質問集を使用）
 
@@ -489,6 +516,22 @@ export default function App() {
   const [deck, setDeck] = useState([]);      // 会話カードモードの山札
   const [cardIdx, setCardIdx] = useState(0); // 現在めくっているカードの位置
   const [flipKey, setFlipKey] = useState(0); // カードをめくるたびに増やしてフリップ再生
+  const [titleTaps, setTitleTaps] = useState(0); // ホームのタイトル5連打で統計画面（隠し）
+  const [stats, setStats] = useState(null);      // { quiz, cards }
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const loadStats = () => {
+    setStatsLoading(true);
+    getPlayCounts().then((d) => { setStats(d); setStatsLoading(false); }).catch(() => setStatsLoading(false));
+  };
+  // 統計画面を開いたらカウントを取得
+  useEffect(() => {
+    if (phase !== "stats") return;
+    let alive = true;
+    setStatsLoading(true);
+    getPlayCounts().then((d) => { if (alive) { setStats(d); setStatsLoading(false); } });
+    return () => { alive = false; };
+  }, [phase]);
 
   const bg = {
     minHeight: "100vh", fontFamily: FONT, color: C.ink, padding: "24px 18px 48px",
@@ -497,6 +540,7 @@ export default function App() {
   const wrap = { maxWidth: 460, margin: "0 auto" };
 
   const start = async () => {
+    bumpPlay("quiz"); // モード別プレイ回数を+1（失敗してもゲームは進む）
     setPhase("gen");
     const key = `${mode}-${category}`;
     const avoid = await loadAsked(key);
@@ -549,13 +593,16 @@ export default function App() {
     setQA(null); setQB(null); setOwnA(null); setOwnB(null); setOptsForA(null); setOptsForB(null); setGuessA(null); setGuessB(null);
   };
   const goHome = () => {
-    setPhase("home"); setQuestions([]); setDeck([]); setCardIdx(0);
+    setPhase("home"); setQuestions([]); setDeck([]); setCardIdx(0); setTitleTaps(0);
     setSpicyUnlocked(false); setLoveTaps(0); setCategory((c) => (c === CAT_SPICY ? "なんでも" : c)); // ホームに戻ったらエッチを再び非表示
     setQA(null); setQB(null); setOwnA(null); setOwnB(null); setOptsForA(null); setOptsForB(null); setGuessA(null); setGuessB(null);
   };
+  // ホームのタイトルを5回タップで統計画面（隠し）
+  const tapTitle = () => setTitleTaps((n) => { const v = n + 1; if (v >= 5) { setPhase("stats"); return 0; } return v; });
 
   // ── 会話カードモード ──
   const startCards = () => {
+    bumpPlay("cards"); // モード別プレイ回数を+1（失敗してもゲームは進む）
     const pool = getPool(mode, category);
     setDeck(shuffle(pool));
     setCardIdx(0);
@@ -604,7 +651,7 @@ export default function App() {
     return (
       <div style={bg}><div style={wrap}>
         <div className="flex justify-center mb-2"><HeartMeter pct={62} /></div>
-        <h1 style={{ fontSize: 30, fontWeight: 800, textAlign: "center", lineHeight: 1.25 }}>価値観あてクイズ</h1>
+        <h1 onClick={tapTitle} style={{ fontSize: 30, fontWeight: 800, textAlign: "center", lineHeight: 1.25, cursor: "default", userSelect: "none" }}>価値観あてクイズ</h1>
         <p style={{ textAlign: "center", color: C.muted, marginTop: 6, marginBottom: 22, lineHeight: 1.6 }}>
           ふたりで楽しむ、価値観の遊び。<br />モードを選んでね。
         </p>
@@ -634,6 +681,41 @@ export default function App() {
           style={{ background: "#fff", color: C.muted, border: `1.5px solid ${C.line}`, fontWeight: 700, fontSize: 15 }}>
           {copied ? "リンクをコピーしました ✓" : "🔗 このアプリのリンクを共有"}
         </button>
+      </div></div>
+    );
+  }
+
+  // ── 統計（隠し：ホームのタイトルを5回タップ）──
+  if (phase === "stats") {
+    const fmt = (v) => (typeof v === "number" ? v.toLocaleString("ja-JP") : "—");
+    const row = (label, emoji, color, soft, val) => (
+      <div className="rounded-3xl p-5 flex items-center gap-3" style={{ background: "#fff", boxShadow: "0 10px 30px rgba(51,40,58,.08)" }}>
+        <div className="rounded-2xl flex items-center justify-center" style={{ width: 48, height: 48, flex: "0 0 auto", background: soft, fontSize: 24 }}>{emoji}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, color: C.muted, fontWeight: 700 }}>{label}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{statsLoading ? "…" : fmt(val)}<span style={{ fontSize: 14, color: C.muted, fontWeight: 700 }}> 回</span></div>
+        </div>
+      </div>
+    );
+    const failed = !statsLoading && stats && stats.quiz == null && stats.cards == null;
+    return (
+      <div style={bg}><div style={wrap}>
+        <button onClick={goHome} className="mb-2" style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 14, padding: "4px 2px" }}>← ホーム</button>
+        <h1 style={{ fontSize: 24, fontWeight: 800, textAlign: "center", lineHeight: 1.25 }}>統計</h1>
+        <p style={{ textAlign: "center", color: C.muted, marginTop: 6, marginBottom: 18, lineHeight: 1.6, fontSize: 13 }}>
+          モード別のプレイ回数（合計）です。<br />隠しページ・個人情報は含みません。
+        </p>
+        <div className="flex flex-col gap-3">
+          {row("価値観あてクイズ", "💘", C.a, C.aSoft, stats && stats.quiz)}
+          {row("会話カード", "🃏", C.b, C.bSoft, stats && stats.cards)}
+        </div>
+        {failed && (
+          <div className="rounded-2xl p-3 mt-3" style={{ background: "#FBEDE9", border: `1px solid ${C.a}`, color: C.a, fontSize: 12.5, lineHeight: 1.6 }}>
+            カウントを取得できませんでした。通信環境やカウンターサービスの状態によっては表示できないことがあります。
+          </div>
+        )}
+        <button onClick={loadStats} disabled={statsLoading} className="rounded-full w-full mt-5 py-3"
+          style={{ background: C.ink, color: "#fff", fontWeight: 800, fontSize: 15, opacity: statsLoading ? 0.7 : 1 }}>{statsLoading ? "読み込み中…" : "🔄 最新の数値に更新"}</button>
       </div></div>
     );
   }
