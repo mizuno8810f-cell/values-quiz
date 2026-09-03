@@ -114,24 +114,42 @@ const shuffle = (a) => {
 const COUNTER_BASE = "https://abacus.jasoncameron.dev";
 const COUNTER_NS = "values-quiz-mizuno8810f-cell"; // 名前空間（固定）
 const COUNTER_KEY = { quiz: "play-quiz", cards: "play-cards" };
+// レスポンスから数値を取り出す（サービスの形式差に強く：value / count のどちらでも拾う）
+function pickCount(j) {
+  if (!j || typeof j !== "object") return null;
+  if (typeof j.value === "number") return j.value;
+  if (typeof j.count === "number") return j.count;
+  return null;
+}
 function bumpPlay(kind) {
   try {
     const key = COUNTER_KEY[kind];
     if (!key || typeof fetch === "undefined") return;
-    fetch(`${COUNTER_BASE}/hit/${COUNTER_NS}/${key}`, { keepalive: true, cache: "no-store" }).catch(() => {});
+    const hit = () => fetch(`${COUNTER_BASE}/hit/${COUNTER_NS}/${key}`, { keepalive: true, cache: "no-store" });
+    hit().then((r) => {
+      // 未作成（404）のサービス向け：作成してからもう一度カウント
+      if (r && r.status === 404) {
+        fetch(`${COUNTER_BASE}/create/${COUNTER_NS}/${key}`, { cache: "no-store" }).then(() => hit()).catch(() => {});
+      }
+    }).catch(() => {});
   } catch (e) { /* 失敗は無視 */ }
 }
+// 返り値: { quiz:number|null, cards:number|null, detail:string }
+// 404（まだ誰も遊んでいない/未作成）は 0 として扱い、通信自体の失敗のみ detail に理由を残す。
 async function getPlayCounts() {
+  let detail = "";
   const read = async (key) => {
     try {
       const r = await fetch(`${COUNTER_BASE}/get/${COUNTER_NS}/${key}`, { cache: "no-store" });
-      if (!r.ok) return null;
-      const j = await r.json();
-      return typeof j.value === "number" ? j.value : null;
-    } catch (e) { return null; }
+      if (r.status === 404) return 0; // カウンター未作成＝プレイ0回
+      if (!r.ok) { detail = detail || `HTTP ${r.status}`; return null; }
+      const v = pickCount(await r.json().catch(() => null));
+      if (v == null) { detail = detail || "予期しない応答形式"; return null; }
+      return v;
+    } catch (e) { detail = detail || `通信エラー: ${(e && e.message) || e}`; return null; }
   };
   const [quiz, cards] = await Promise.all([read(COUNTER_KEY.quiz), read(COUNTER_KEY.cards)]);
-  return { quiz, cards };
+  return { quiz, cards, detail };
 }
 
 // ─── AI ───────────────────────────────────────────────────
@@ -697,7 +715,8 @@ export default function App() {
         </div>
       </div>
     );
-    const failed = !statsLoading && stats && stats.quiz == null && stats.cards == null;
+    // 本当に通信が失敗した時だけエラー表示（未作成=0回 は通常表示）
+    const failed = !statsLoading && stats && stats.quiz == null && stats.cards == null && !!stats.detail;
     return (
       <div style={bg}><div style={wrap}>
         <button onClick={goHome} className="mb-2" style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 14, padding: "4px 2px" }}>← ホーム</button>
@@ -712,6 +731,9 @@ export default function App() {
         {failed && (
           <div className="rounded-2xl p-3 mt-3" style={{ background: "#FBEDE9", border: `1px solid ${C.a}`, color: C.a, fontSize: 12.5, lineHeight: 1.6 }}>
             カウントを取得できませんでした。通信環境やカウンターサービスの状態によっては表示できないことがあります。
+            {stats && stats.detail && (
+              <div style={{ marginTop: 6, fontSize: 11, fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", color: C.muted, wordBreak: "break-all" }}>詳細: {stats.detail}</div>
+            )}
           </div>
         )}
         <button onClick={loadStats} disabled={statsLoading} className="rounded-full w-full mt-5 py-3"
